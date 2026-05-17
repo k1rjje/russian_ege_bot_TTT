@@ -97,7 +97,7 @@ def scrape_problems_and_answers(page_url, start_problem_num):
             problems_data_on_page.append({
                 'problem_number': current_problem_num,
                 'problem_text': problem_text,
-                'answer_explanation': answer_text
+                'answer': answer_text
             })
             current_problem_num += 1
         else:
