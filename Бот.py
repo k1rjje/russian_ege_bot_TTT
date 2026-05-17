@@ -37,19 +37,18 @@ for task_raw in raw_ege_tasks_1_data:
             "answer": ans.lower()
         })
 
-user_ans = {} # Stores {user_id: correct_answer}
+user_ans = {} # {user_id: correct_answer}
 
 async def send_random_task(update, context, set_name_display=None):
     uid = update.effective_user.id
     
-    # Get the list of tasks available for the current session/user
     available_tasks = context.user_data.get('available_tasks')
     selected_task_type_key = context.user_data.get('selected_task_type_key')
 
     if not available_tasks:
-        # This means no set has been chosen yet or all tasks in the chosen set have been exhausted
+        # тип задания не выбран или их все прорешали
         if selected_task_type_key:
-            # All tasks of this type have been exhausted
+            # все прорешали
             exhaustion_keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Да", callback_data='restart_tasks')],
                 [InlineKeyboardButton("Нет", callback_data='back_to_main_menu')]
@@ -59,15 +58,14 @@ async def send_random_task(update, context, set_name_display=None):
                 reply_markup=exhaustion_keyboard
             )
         else:
-            # No task type selected initially or after returning to main menu
+            # тип не выбран
             await update.effective_message.reply_text("Пожалуйста, сначала выберите тип заданий с помощью /start.")
         return
 
-    # Increment task counter for the user
     context.user_data['task_counter'] = context.user_data.get('task_counter', 0) + 1
     task_display_number = context.user_data['task_counter']
 
-    # Choose a random task and remove it from the available list to prevent repetition
+    # Выбор задания и его удаление до полного прорешивания
     t = random.choice(available_tasks)
     available_tasks.remove(t)
 
@@ -84,7 +82,6 @@ async def start(update, context):
         [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    # Use update.effective_message for reply_text to work with both CommandHandler and CallbackQueryHandler
     await update.effective_message.reply_text("Выберите тип заданий:", reply_markup=reply_markup)
 
 async def get_task(update, context):
@@ -93,20 +90,20 @@ async def get_task(update, context):
 
 async def button_callback_handler(update, context):
     query = update.callback_query
-    await query.answer() # Acknowledge the button press
+    await query.answer() # нажатие кнопки
 
-    uid = update.effective_user.id # Use update.effective_user.id directly
+    uid = update.effective_user.id 
 
     if query.data == 'choose_set_1':
-        context.user_data['available_tasks'] = list(bot_tasks_set_1) # Create a copy for the session
+        context.user_data['available_tasks'] = list(bot_tasks_set_1) # новая копия для сессии
         context.user_data['selected_task_type_key'] = 'set_1'
         context.user_data['task_counter'] = 0 # Reset counter
-        await send_random_task(update, context, "Орфография") # Pass original update object
+        await send_random_task(update, context, "Орфография") # 
     elif query.data == 'choose_set_2':
-        context.user_data['available_tasks'] = list(TASKS) # Create a copy for the session
+        context.user_data['available_tasks'] = list(TASKS) # новая копия для сессии
         context.user_data['selected_task_type_key'] = 'set_2'
-        context.user_data['task_counter'] = 0 # Reset counter
-        await send_random_task(update, context, "Паронимы") # Pass original update object
+        context.user_data['task_counter'] = 0 # обнуление подсчета
+        await send_random_task(update, context, "Паронимы") 
     elif query.data == 'get_another_task':
         await send_random_task(update, context)
     elif query.data == 'back_to_main_menu':
@@ -114,8 +111,8 @@ async def button_callback_handler(update, context):
             del context.user_data['available_tasks']
         if 'selected_task_type_key' in context.user_data:
             del context.user_data['selected_task_type_key']
-        context.user_data['task_counter'] = 0 # Reset counter
-        await start(update, context) # Re-call start to show menu again
+        context.user_data['task_counter'] = 0 # обнуление подсчета
+        await start(update, context) # снова показать меню
     elif query.data == 'restart_tasks':
         selected_task_type_key = context.user_data.get('selected_task_type_key')
         if selected_task_type_key == 'set_1':
@@ -128,7 +125,7 @@ async def button_callback_handler(update, context):
             await query.message.reply_text("Не удалось определить тип заданий для перезапуска.")
             return
 
-        context.user_data['task_counter'] = 0 # Reset counter for a new 'session' of this type
+        context.user_data['task_counter'] = 0 # обнуление подсчета
         await query.message.reply_text(f"Начинаем заново! Выбран {display_name}.")
         await send_random_task(update, context, display_name)
     else:
@@ -145,12 +142,11 @@ async def check(update, context):
     
     want = user_ans[uid].lower().replace('ё', 'е').strip()
 
-    # Normalize user's input based on whether the expected answer is purely numeric
+    # привод ответа к стандартному виду
     if want.isdigit():
         got = raw_user_input.replace(" ", "")
     else:
         got = " ".join(raw_user_input.split())
-        # Ensure 'want' also has consistent space handling if it's not numeric
         want = " ".join(want.split())
 
     feedback_keyboard = InlineKeyboardMarkup([
