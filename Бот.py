@@ -25,7 +25,7 @@ with open('ege_tasks_1.json', 'r', encoding='utf-8') as f:
 bot_tasks_set_1 = []
 for task_raw in raw_ege_tasks_1_data:
     q_text = task_raw['problem_text']
-    ans_exp = task_raw['answe']
+    ans_exp = task_raw['answer']
 
     ans_match = re.search(r'Ответ:\s*(\d+)', ans_exp, re.IGNORECASE)
     ans = ans_match.group(1).strip() if ans_match else ""
