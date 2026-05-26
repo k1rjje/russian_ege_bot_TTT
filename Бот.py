@@ -15,7 +15,7 @@ TOKEN = "8652125406:AAHQ5kTyJwNF54fV-5O6aAObLKaPVwvumv4"
 def escape_markdown(text):
     return text.replace('*', '').replace('_', '').replace('`', '')
 
-PICTURES = ["pic1.png", "pic2.png", "pic3.png"]
+PICTURES = ["pic1.png", "pic2.png", "pic3.png", "pic4.png", "pic5.png", "pic6.png", "pic7.png", "pic8.png", "pic9.png", "pic10.png", "pic11.png", "pic12.png", "pic13.png", "pic14.png"]
 pics_index = 0
 
 # Загрузка заданий
