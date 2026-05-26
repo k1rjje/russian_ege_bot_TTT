@@ -1,3 +1,24 @@
+# Убиваем все старые процессы перед запуском
+import requests
+import time
+import os
+
+TOKEN = "[СЕКРЕТНО]"
+
+print("Очистка старых сессий бота...")
+# 5 попыток очистки с задержкой
+for i in range(5):
+    try:
+        # Удаляем вебхук и все ожидающие обновления
+        requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=3)
+        time.sleep(1)
+        print(f"Попытка {i+1} выполнена")
+    except Exception as e:
+        print(f"Попытка {i+1}: {e}")
+
+print("Старые сессии очищены, запускаем бота...\n")
+time.sleep(2)
+
 !pip install python-telegram-bot nest_asyncio -q
 
 import json
@@ -7,16 +28,18 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import re
 from datetime import date, datetime
+import requests
+import time
 
 nest_asyncio.apply()
 
-TOKEN = "[ЭТО СЕКРЕТНАЯ ИНФОРМАЦИЯ]"
+TOKEN = "[СЕКРЕТНО]"
 
 def escape_markdown(text):
     return text.replace('*', '').replace('_', '').replace('`', '')
 
 PICTURES = ["pic1.png", "pic2.png", "pic3.png", "pic4.png", "pic5.png", "pic6.png", "pic7.png", "pic8.png", "pic9.png", "pic10.png", "pic11.png", "pic12.png", "pic13.png", "pic14.png"]
-pics_index = 0
+available_pictures = list(PICTURES)  # Доступные для отправки картинки
 
 # Загрузка заданий
 with open("tasks.txt", "r", encoding="utf-8") as f:
@@ -101,16 +124,33 @@ def get_correct_word_form(number, form1, form2, form3):
         return form3
 
 async def send_random_photo(chat_id, context):
-    global pics_index
+    global available_pictures
+    
     if not PICTURES:
         return
-    pic = PICTURES[pics_index]
+    
+    # Если все картинки были отправлены, обновляем список доступных
+    if not available_pictures:
+        available_pictures = list(PICTURES)
+    
+    # Выбираем случайную картинку из доступных
+    pic = random.choice(available_pictures)
+    available_pictures.remove(pic)
+    
+    print(f"Отправляю картинку: {pic} (осталось {len(available_pictures)} из {len(PICTURES)})")
+    
     try:
         with open(pic, "rb") as img:
             await context.bot.send_photo(chat_id=chat_id, photo=img)
-        pics_index = (pics_index + 1) % len(PICTURES)
-    except:
-        pass
+        print(f"✅ Успешно отправлено: {pic}")
+    except FileNotFoundError:
+        print(f"❌ Файл не найден: {pic}")
+        # Пробуем другую картинку
+        await send_random_photo(chat_id, context)
+    except Exception as e:
+        print(f"❌ Ошибка отправки {pic}: {e}")
+        # Пробуем другую картинку
+        await send_random_photo(chat_id, context)
 
 async def send_random_task(update_or_query, context, set_name_display=None):
     uid = update_or_query.effective_user.id
@@ -279,7 +319,7 @@ async def button_callback_handler(update, context):
             display_name = "Паронимы"
         elif selected_task_type_key == 'set_4':
             context.user_data['available_tasks'] = list(t13_tasks)
-            display_name = "Слитно/Раздельно"
+            display_name = "Слитно/раздельно"
         elif selected_task_type_key == 'random':
             context.user_data['available_tasks'] = list(ALL_TASKS)
             display_name = "Случайный режим"
@@ -311,7 +351,7 @@ async def button_callback_handler(update, context):
                 user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
         elif selected_task_type_key == 'set_4': #SLITNO|RAZDELNO
             context.user_data['available_tasks'] = list(t13_tasks)
-            display_name = "Слитно/Раздельно"
+            display_name = "Слитно/раздельно"
             if uid in user_solved_tasks:
                 type_ids = {t.get('id', t['text']) for t in t13_tasks}
                 user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
