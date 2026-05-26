@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 nest_asyncio.apply()
 
-TOKEN = "8652125406:AAHQ5kTyJwNF54fV-5O6aAObLKaPVwvumv4"
+TOKEN = "[ЭТО СЕКРЕТНАЯ ИНФОРМАЦИЯ]"
 
 def escape_markdown(text):
     return text.replace('*', '').replace('_', '').replace('`', '')
