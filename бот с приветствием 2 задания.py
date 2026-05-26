@@ -59,8 +59,27 @@ for task_raw in raw_ege_tasks_1_data:
 
 print(f"Загружено {len(bot_tasks_set_1)} заданий из ege_tasks_1.json")
 
+#INJAA 13 task ZAGRUZKA
+def ifsep(s):
+    if "/C/" in s or "/С/" in s:
+        return "Слитно"
+    else:
+        return "Раздельно"
+
+f = open('task13.txt', 'r', encoding='utf-8')
+t13_tasks = []
+
+k = f.readline().strip()
+counter = 1
+while k != "":
+    t13_tasks.append( {"id": counter, "text": k.replace("/C/", "").replace("/С/", ""), "answer": ifsep(k)} )
+    k = f.readline().strip()
+
+f.close()
+#TAA INJAA
+
 # Общий список всех заданий для режима "Случайное"
-ALL_TASKS = bot_tasks_set_1 + TASKS
+ALL_TASKS = bot_tasks_set_1 + TASKS + t13_tasks
 print(f"Всего заданий для случайного режима: {len(ALL_TASKS)}")
 
 user_ans = {}
@@ -150,6 +169,7 @@ async def start(update, context):
     keyboard = [
         [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
         [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
+        [InlineKeyboardButton("Слитно/Раздельно (№13)", callback_data='choose_set_4')],
         [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -163,6 +183,7 @@ async def show_task_types(update, context):
     keyboard = [
         [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
         [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
+        [InlineKeyboardButton("Слитно/Раздельно (№13)", callback_data='choose_set_4')],
         [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -210,6 +231,13 @@ async def button_callback_handler(update, context):
         context.user_data['task_counter'] = 0
         await query.message.delete()
         await send_random_task(update, context, "Паронимы")
+    elif query.data == 'choose_set_4':
+        filtered_tasks = await get_filtered_tasks(uid, t13_tasks)
+        context.user_data['available_tasks'] = filtered_tasks
+        context.user_data['selected_task_type_key'] = 'set_4'
+        context.user_data['task_counter'] = 0
+        await query.message.delete()
+        await send_random_task(update, context, "Слитно/Раздельно (№13)")
     elif query.data == 'choose_random':
         filtered_tasks = await get_filtered_tasks(uid, ALL_TASKS)
         context.user_data['available_tasks'] = filtered_tasks
@@ -249,6 +277,9 @@ async def button_callback_handler(update, context):
         elif selected_task_type_key == 'set_2':
             context.user_data['available_tasks'] = list(TASKS)
             display_name = "Паронимы"
+        elif selected_task_type_key == 'set_4':
+            context.user_data['available_tasks'] = list(t13_tasks)
+            display_name = "Паронимы"
         elif selected_task_type_key == 'random':
             context.user_data['available_tasks'] = list(ALL_TASKS)
             display_name = "Случайный режим"
@@ -278,6 +309,13 @@ async def button_callback_handler(update, context):
             if uid in user_solved_tasks:
                 type_ids = {t.get('id', t['text']) for t in TASKS}
                 user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
+        elif selected_task_type_key == 'set_4': #SLITNO|RAZDELNO
+            context.user_data['available_tasks'] = list(t13_tasks)
+            display_name = "Паронимы"
+            if uid in user_solved_tasks:
+                type_ids = {t.get('id', t['text']) for t in t13_tasks}
+                user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
+        
         elif selected_task_type_key == 'random':
             # Для случайного режима очищаем всё
             if uid in user_solved_tasks:
@@ -328,6 +366,7 @@ async def check(update, context):
         keyboard = [
             [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
             [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
+            [InlineKeyboardButton("Слитно/Раздельно (№13)", callback_data='choose_set_4')],
             [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
