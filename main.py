@@ -2,19 +2,23 @@
 import requests
 import time
 import os
+import logging
 
+
+logger = logging.getLogger(__name__)
 TOKEN = "8652125406:AAHYxFtCGzkB_HnFyXs_YBvBlKMIgaxHIrc"
 
-print("Очистка старых сессий бота...")
+logger.info("Очистка старых сессий бота...")
 for i in range(5):
     try:
         requests.get(f"https://api.telegram.org/bot{TOKEN}/deleteWebhook?drop_pending_updates=True", timeout=3)
         time.sleep(1)
-        print(f"Попытка {i + 1} выполнена")
+        logger.info(f"Попытка {i + 1} выполнена")
     except Exception as e:
-        print(f"Попытка {i + 1}: {e}")
+        logger.info(f"Попытка {i + 1}: {e}")
 
-print("Старые сессии очищены, запускаем бота...\n")
+
+logger.info("Старые сессии очищены, запускаем бота...\n")
 time.sleep(2)
 
 os.system("pip install python-telegram-bot nest_asyncio -q")
@@ -29,8 +33,10 @@ from datetime import date, datetime
 
 nest_asyncio.apply()
 
-print(f"requests version: {requests.__version__}")
-print(f"bs4 version: {bs4.__version__}")
+
+logger.info(f"requests version: {requests.__version__}")
+logger.info(f"bs4 version: {bs4.__version__}")
+
 
 def escape_markdown(text):
     return text.replace('*', '').replace('_', '').replace('`', '')
@@ -60,7 +66,7 @@ for i, line in enumerate(lines):
         tasks.append({"text": "\n".join(task_lines), "answer": answer})
 
 TASKS = [{"text": escape_markdown(t['text']), "answer": t['answer']} for t in tasks]
-print(f"Загружено {len(TASKS)} заданий для Паронимов")
+logger.info(f"Загружено {len(TASKS)} заданий для Паронимов")
 
 # Орфография (задание 1)
 with open('ege_tasks_1.json', 'r', encoding='utf-8') as f:
@@ -78,7 +84,7 @@ for task_raw in raw_ege_tasks_1_data:
             "text": escape_markdown(q_text),
             "answer": ans.lower()
         })
-print(f"Загружено {len(bot_tasks_set_1)} заданий из ege_tasks_1.json")
+logger.info(f"Загружено {len(bot_tasks_set_1)} заданий из ege_tasks_1.json")
 
 # Ударения
 try:
@@ -91,9 +97,9 @@ try:
             "text": escape_markdown(task['text']),
             "answer": task['answer'].lower()
         })
-    print(f"Загружено {len(stress_tasks)} заданий по Ударениям")
+    logger.info(f"Загружено {len(stress_tasks)} заданий по Ударениям")
 except Exception as e:
-    print("Файл с ударениями не найден, создаём пустой список")
+    logger.info("Файл с ударениями не найден, создаём пустой список")
     stress_tasks = []
 
 # Слитно/Раздельно (задание 13)
@@ -111,11 +117,11 @@ with open('task13.txt', 'r', encoding='utf-8') as f:
         t13_tasks.append({"id": counter, "text": k.replace("/C/", "").replace("/С/", ""), "answer": ifsep(k)})
         k = f.readline().strip()
         counter += 1
-print(f"Загружено {len(t13_tasks)} заданий Слитно/Раздельно")
+logger.info(f"Загружено {len(t13_tasks)} заданий Слитно/Раздельно")
 
 # Общий список для случайного режима
 ALL_TASKS = bot_tasks_set_1 + TASKS + t13_tasks + stress_tasks
-print(f"Всего заданий для случайного режима: {len(ALL_TASKS)}")
+logger.info(f"Всего заданий для случайного режима: {len(ALL_TASKS)}")
 
 user_ans = {}
 user_streaks = {}
@@ -547,5 +553,5 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button_callback_handler))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, check))
 
-print("Бот запущен! Отправьте /start в Telegram")
+logger.info("Бот запущен! Отправьте /start в Telegram")
 app.run_polling(drop_pending_updates=True)
