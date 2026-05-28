@@ -30,9 +30,6 @@ os.system("pip install python-telegram-bot nest_asyncio -q")
 
 nest_asyncio.apply()
 
-print(f"requests version: {requests.__version__}")
-print(f"bs4 version: {bs4.__version__}")
-
 def escape_markdown(text):
     return text.replace('*', '').replace('_', '').replace('`', '')
 
