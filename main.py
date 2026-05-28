@@ -29,8 +29,6 @@ from datetime import date, datetime
 
 nest_asyncio.apply()
 
-TOKEN = "[СЕКРЕТНО]"
-
 print(f"requests version: {requests.__version__}")
 print(f"bs4 version: {bs4.__version__}")
 
