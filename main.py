@@ -231,7 +231,7 @@ async def send_random_task(update_or_query, context, set_name_display=None):
         user_solved_tasks[uid] = set()
     user_solved_tasks[uid].add(task_id)
 
-    prefix = f"Выбран тип {set_name_display}.\n\n" if set_name_display else ""
+    prefix = f"Выбран тип {display_name}.\n\n" if display_name else ""
 
     # Определяем, показывать кнопки или текстовый ввод
     if t['answer'] in ('Слитно', 'Раздельно'):
