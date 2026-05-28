@@ -188,7 +188,7 @@ async def get_filtered_tasks(uid, task_list):
     solved = user_solved_tasks[uid]
     return [t for t in task_list if t.get('id', t['text']) not in solved]
 
-async def send_random_task(update_or_query, context, set_name_display=None):
+async def send_random_task(update_or_query, context, display_name=None):
     uid = update_or_query.effective_user.id
     chat_id = update_or_query.effective_chat.id
 
