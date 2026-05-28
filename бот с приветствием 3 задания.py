@@ -82,6 +82,22 @@ for task_raw in raw_ege_tasks_1_data:
 
 print(f"Загружено {len(bot_tasks_set_1)} заданий из ege_tasks_1.json")
 
+#Ударения
+
+try:
+    with open('ege_stress_tasks.json', 'r', encoding='utf-8') as f:
+        raw_stress_tasks = json.load(f)
+    
+    stress_tasks = []
+    for task in raw_stress_tasks:
+        stress_tasks.append({
+            "id": task.get('id', task.get('number', len(stress_tasks) + 1)),
+            "text": escape_markdown(task['text']),
+            "answer": task['answer'].lower()
+        })
+    
+    print(f" Загружено {len(stress_tasks)} заданий по Ударениям")
+
 #INJAA 13 task ZAGRUZKA
 def ifsep(s):
     if "/C/" in s or "/С/" in s:
@@ -102,7 +118,7 @@ f.close()
 #TAA INJAA
 
 # Общий список всех заданий для режима "Случайное"
-ALL_TASKS = bot_tasks_set_1 + TASKS + t13_tasks
+ALL_TASKS = bot_tasks_set_1 + TASKS + t13_tasks + stress_tasks
 print(f"Всего заданий для случайного режима: {len(ALL_TASKS)}")
 
 user_ans = {}
@@ -210,6 +226,7 @@ async def start(update, context):
         [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
         [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
         [InlineKeyboardButton("Слитно/Раздельно", callback_data='choose_set_4')],
+        [InlineKeyboardButton("Ударения", callback_data='choose_set_3')],
         [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -224,6 +241,7 @@ async def show_task_types(update, context):
         [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
         [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
         [InlineKeyboardButton("Слитно/Раздельно", callback_data='choose_set_4')],
+        [InlineKeyboardButton("Ударения", callback_data='choose_set_3')],
         [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -271,6 +289,13 @@ async def button_callback_handler(update, context):
         context.user_data['task_counter'] = 0
         await query.message.delete()
         await send_random_task(update, context, "Паронимы")
+    elif query.data == 'choose_set_3':
+        filtered_tasks = await get_filtered_tasks(uid, stress_tasks)
+        context.user_data['available_tasks'] = filtered_tasks
+        context.user_data['selected_task_type_key'] = 'set_3'
+        context.user_data['task_counter'] = 0
+        await query.message.delete()
+        await send_random_task(update, context, "Ударения")
     elif query.data == 'choose_set_4':
         filtered_tasks = await get_filtered_tasks(uid, t13_tasks)
         context.user_data['available_tasks'] = filtered_tasks
@@ -320,6 +345,9 @@ async def button_callback_handler(update, context):
         elif selected_task_type_key == 'set_4':
             context.user_data['available_tasks'] = list(t13_tasks)
             display_name = "Слитно/раздельно"
+        elif selected_task_type_key == 'set_3':
+            context.user_data['available_tasks'] = list(stress_tasks)
+            display_name = "Ударения"
         elif selected_task_type_key == 'random':
             context.user_data['available_tasks'] = list(ALL_TASKS)
             display_name = "Случайный режим"
@@ -348,6 +376,12 @@ async def button_callback_handler(update, context):
             display_name = "Паронимы"
             if uid in user_solved_tasks:
                 type_ids = {t.get('id', t['text']) for t in TASKS}
+                user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
+        elif selected_task_type_key == 'set_3':
+            context.user_data['available_tasks'] = list(stress_tasks)
+            display_name = "Ударения"
+            if uid in user_solved_tasks:
+                type_ids = {t.get('id', t['text']) for t in stress_tasks}
                 user_solved_tasks[uid] = user_solved_tasks[uid] - type_ids
         elif selected_task_type_key == 'set_4': #SLITNO|RAZDELNO
             context.user_data['available_tasks'] = list(t13_tasks)
@@ -407,6 +441,7 @@ async def check(update, context):
             [InlineKeyboardButton("Орфография", callback_data='choose_set_1')],
             [InlineKeyboardButton("Паронимы", callback_data='choose_set_2')],
             [InlineKeyboardButton("Слитно/Раздельно", callback_data='choose_set_4')],
+            [InlineKeyboardButton("Ударения", callback_data='choose_set_3')],
             [InlineKeyboardButton("🎲 Случайное", callback_data='choose_random')],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
