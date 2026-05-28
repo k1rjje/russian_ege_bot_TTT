@@ -1,0 +1,143 @@
+!pip install PyPDF2
+
+import PyPDF2
+import re
+import json
+
+def extract_text_from_pdf(pdf_path):
+    """Извлекает текст из PDF файла"""
+    text = ""
+    try:
+        with open(pdf_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+    except Exception as e:
+        print(f"Ошибка при чтении PDF: {e}")
+        return ""
+    return text
+
+def clean_text(text):
+    """Очищает текст от лишних пробелов, сохраняя нормальные пробелы между словами"""
+    # Убираем мягкие переносы и спецсимволы
+    text = text.replace('­', '').replace(' ', ' ')
+    text = text.replace('\xad', '').replace('\u202f', ' ')
+
+    # Убираем пробелы ТОЛЬКО там, где они разрывают слово
+    # Например: "от ветов" -> "ответов", но "Укажите варианты" не трогаем
+    # Сначала нормализуем множественные пробелы
+    text = re.sub(r'\s+', ' ', text)
+
+    # Список паттернов для склеивания разорванных слов
+    # Это специфичные для твоего PDF исправления
+    fixes = [
+        # Фразы из задания
+        (r'Укажите\s+варианты\s+ответов', 'Укажите варианты ответов'),
+        (r'варианты\s+ответов', 'варианты ответов'),
+        (r'Укажите\s+варианты', 'Укажите варианты'),
+        (r'в\s+которых', 'в которых'),
+        (r'верно\s+выделена', 'верно выделена'),
+        (r'обозначающая\s+ударный\s+гласный\s+звук', 'обозначающая ударный гласный звук'),
+        (r'Запишите\s+номера\s+ответов', 'Запишите номера ответов'),
+        (r'Запишите\s+номера', 'Запишите номера'),
+    ]
+
+    for pattern, replacement in fixes:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
+    return text.strip()
+
+def parse_tasks_from_pdf(text):
+    """Парсит задания и ответы из текста PDF"""
+    tasks = {}
+
+    # Ищем все блоки с номерами заданий
+    # Формат: "1. Задание 1 № 45059" или просто "Задание 1 № 45059"
+    pattern = r'(?:Задание|Тип)\s+\d+\s+№\s+(\d+).*?(?=(?:Задание|Тип)\s+\d+\s+№|\Z)'
+    matches = re.finditer(pattern, text, re.DOTALL)
+
+    for match in matches:
+        task_id = match.group(1)
+        block = match.group(0)
+
+        # Ищем условие (от "Укажите варианты" до "Ответ:" или "Пояснение")
+        condition_match = re.search(r'(Укажите\s+варианты.*?)(?=Пояснение|ВЕРНЫЕ УДАРЕНИЯ|ВЕРНЫЙ ОТВЕТ|Ответ:|$)', block, re.DOTALL)
+        if not condition_match:
+            continue
+
+        condition = condition_match.group(1).strip()
+
+        # Ищем ответ
+        answer_match = re.search(r'Ответ:\s*(\d+)', block, re.IGNORECASE)
+        if not answer_match:
+            answer_match = re.search(r'ВЕРНЫЙ ОТВЕТ\s*(\d+)', block, re.IGNORECASE)
+
+        if not answer_match:
+            continue
+
+        answer = answer_match.group(1)
+
+        # Очищаем текст
+        condition = clean_text(condition)
+
+        # Добавляем переносы перед вариантами
+        condition = re.sub(r'(\d+)\)', r'\n\1)', condition)
+        condition = condition.strip()
+
+        tasks[task_id] = {
+            'id': task_id,
+            'text': condition,
+            'answer': answer
+        }
+        print(f"   Задание {task_id}: ответ {answer}")
+
+    return tasks
+
+# --- Основная часть ---
+print("=" * 70)
+print("ПАРСИНГ ЗАДАНИЙ ИЗ PDF (ЕГЭ.pdf)")
+print("=" * 70)
+
+pdf_path = "/content/ЕГЭ.pdf"
+
+# Извлекаем текст
+print(f"\n📄 Читаем файл: {pdf_path}")
+text = extract_text_from_pdf(pdf_path)
+
+if not text:
+    print(" Не удалось извлечь текст из PDF")
+    exit()
+
+print(f" Всего извлечено символов: {len(text)}")
+
+# Парсим задания
+print("\n Парсинг заданий...")
+tasks = parse_tasks_from_pdf(text)
+
+if not tasks:
+    print(" Не удалось распарсить задания")
+    exit()
+
+# Преобразуем в список и сортируем
+tasks_list = list(tasks.values())
+tasks_list.sort(key=lambda x: int(x['id']))
+
+# Добавляем порядковые номера
+for idx, task in enumerate(tasks_list, 1):
+    task['number'] = idx
+
+# Сохраняем в JSON
+output_file = "ege_stress_tasks.json"
+with open(output_file, "w", encoding="utf-8") as f:
+    json.dump(tasks_list, f, ensure_ascii=False, indent=2)
+
+print("\n" + "=" * 70)
+print(f"Собрано {len(tasks_list)} заданий")
+print(f"Сохранено в файл: {output_file}")
+
+# Скачиваем файл
+from google.colab import files
+files.download(output_file)
+print(f"\n Файл {output_file} скачан на компьютер")
