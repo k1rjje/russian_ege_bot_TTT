@@ -157,7 +157,7 @@ async def start(update, context):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.effective_message.reply_text(
-        "Привет! Это бот для подготовки к ЕГЭ по русскому языку. Выбери, чем займешься сегодня 👇",
+        "Привет! Это бот для подготовки к ЕГЭ по русскому языку. Выбери, чем займешься сегодня 👇 или напиши "Сколько?"🗓, чтобы получить заряд мотивации",
         reply_markup=reply_markup
     )
 
